@@ -145,12 +145,12 @@
                 let fontSize = 70;
                 let rowGap = 100;
 
-                if (count > 32) {
-                    cols = 5; fontSize = 38; rowGap = 75; startY = 320;
-                } else if (count > 20) {
-                    cols = 4; fontSize = 42; rowGap = 85; startY = 310;
+                if (count > 40) {
+                    cols = 5; fontSize = 42; rowGap = 85; startY = 300;
+                } else if (count > 30) {
+                    cols = 4; fontSize = 42; rowGap = 85; startY = 300;
                 } else if (count > 10) {
-                    cols = 2; fontSize = 55; rowGap = 95; startY = 300;
+                    cols = 2; fontSize = 55; rowGap = 95; startY = 340;
                 } else {
                     cols = 1; fontSize = 70; rowGap = 110; startY = 340;
                 }
@@ -172,7 +172,7 @@
                 ctx.shadowOffsetY = 0;
                 ctx.fillStyle = "rgba(251, 191, 36, 0.5)";
                 ctx.font = "36px 'Inter'";
-                ctx.fillText(`2026 好運FUN馬來 • ${new Date().toLocaleString()}`, width / 2, height - 80);
+                ctx.fillText(` ${new Date().toLocaleString()}`, width / 2, height - 80);
             };
 
             useEffect(() => {
@@ -279,4 +279,5 @@
     </script>
 </body>
 </html>
+
 
