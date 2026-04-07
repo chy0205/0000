@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖檔生成</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&display=swap');
+        
+        body { 
+            font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; 
+            background-color: #1a1a1a; 
+            color: white; 
+        }
+        canvas { 
+            border-radius: 0.5rem; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); 
+            background-color: #801212; 
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d97706; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const DEFAULT_BG_URL = "https://cdn.jsdelivr.net/gh/zxc1234z004/imgup@main/images/20260222_180153_23.jpg"; 
+
+        const KAI_FONT_STACK = '"DFKai-SB", "BiauKai", "Kaiti TC", "STKaiti", "KaiTi", "標楷體", "serif"';
+
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const containerRef = useRef(null);
+            useEffect(() => {
+                if (window.lucide && containerRef.current) {
+                    containerRef.current.innerHTML = '';
+                    const i = document.createElement('i');
+                    i.setAttribute('data-lucide', name);
+                    i.className = className;
+                    i.style.width = `${size}px`;
+                    i.style.height = `${size}px`;
+                    containerRef.current.appendChild(i);
+                    window.lucide.createIcons();
+                }
+            }, [name, size, className]);
+            return <span ref={containerRef} className="inline-flex items-center justify-center leading-none" />;
+        };
+
+        const App = () => {
+            const [prizeName, setPrizeName] = useState("未填寫名單如下");
+            const [winnerText, setWinnerText] = useState("");
+            const [bgUrl, setBgUrl] = useState(""); 
+            const [customBg, setCustomBg] = useState(null); 
+            const [isLoading, setIsLoading] = useState(false);
+            const [isEditingPresets, setIsEditingPresets] = useState(false);
+            const [canvasSize] = useState({ width: 1920, height: 1080 });
+            const canvasRef = useRef(null);
+
+            const [presetTitles, setPresetTitles] = useState([
+                "謝師宴禮物調查有填寫名單如下",
+                "備在閒時 應於不時 故事繪本 有繳交名單如下",
+                "備在閒時 應於不時 故事繪本 未繳交名單如下",
+                "謝師宴禮物調查未填寫名單如下"
+            ]);
+
+            useEffect(() => {
+                if (DEFAULT_BG_URL) loadSpecificUrl(DEFAULT_BG_URL);
+            }, []);
+
+            const loadSpecificUrl = (url) => {
+                if (!url) return;
+                setIsLoading(true);
+                const img = new Image();
+                img.crossOrigin = "anonymous"; 
+                img.onload = () => {
+                    setCustomBg(img);
+                    setIsLoading(false);
+                };
+                img.onerror = () => setIsLoading(false);
+                img.src = url;
+            };
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => setCustomBg(img);
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const updatePreset = (index, value) => {
+                const newPresets = [...presetTitles];
+                newPresets[index] = value;
+                setPresetTitles(newPresets);
+            };
+
+            const drawImage = () => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                const { width, height } = canvas;
+
+                ctx.clearRect(0, 0, width, height);
+
+                if (customBg) {
+                    ctx.drawImage(customBg, 0, 0, width, height);
+                } else {
+                    ctx.fillStyle = "#801212"; 
+                    ctx.fillRect(0, 0, width, height);
+                }
+
+                // 標題繪製：增加明顯黑框
+                ctx.save();
+                ctx.textAlign = "center";
+                ctx.font = `bold 95px ${KAI_FONT_STACK}`;
+                
+                // 陰影效果
+                ctx.shadowColor = "rgba(0, 0, 0, 0)";
+                ctx.shadowBlur = 15;
+                ctx.shadowOffsetX = 5;
+                ctx.shadowOffsetY = 5;
+
+                const titleText = `— ${prizeName} —`;
+                const titleX = width / 2;
+                const titleY = 190;
+
+                // 1. 先繪製黑框 (Stroke)
+                ctx.strokeStyle = "#000000";
+                ctx.lineWidth = 8; // 加厚黑框
+                ctx.lineJoin = "round";
+                ctx.strokeText(titleText, titleX, titleY);
+
+                // 2. 再填入白色主文字
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillText(titleText, titleX, titleY);
+                ctx.restore();
+
+                const winners = winnerText.split('\n').filter(name => name.trim() !== "");
+                const count = winners.length;
+                if (count === 0) return;
+
+                // 佈局參數
+                let cols = 5; 
+                const itemsPerCol = Math.ceil(count / cols);
+                
+                // 動態字體縮放邏輯
+                let fontSize = 85; 
+                if (itemsPerCol > 7) fontSize = 75;
+                if (itemsPerCol > 10) fontSize = 65;
+                if (itemsPerCol > 15) fontSize = 50;
+                if (itemsPerCol > 20) fontSize = 40;
+
+                let baseStartY = 350; 
+                const maxHeight = 1000; 
+
+                const sideMargin = 220; 
+                const availableWidth = width - (sideMargin * 2);
+                const colSpacing = availableWidth / (cols - 1);
+                
+                let rowGap = (maxHeight - baseStartY) / (itemsPerCol > 1 ? itemsPerCol - 1 : 1);
+                const maxRowGap = 105; 
+                if (rowGap > maxRowGap) rowGap = maxRowGap;
+
+                const totalTextHeight = (itemsPerCol - 1) * rowGap;
+                const startY = baseStartY + (maxHeight - baseStartY - totalTextHeight) / 2;
+
+                winners.forEach((name, i) => {
+                    const colIndex = Math.floor(i / itemsPerCol);
+                    const rowIndex = i % itemsPerCol;
+                    
+                    const x = Math.round(sideMargin + (colIndex * colSpacing));
+                    const y = Math.round(startY + (rowIndex * rowGap));
+
+                    ctx.save();
+                    ctx.textAlign = "center";
+                    ctx.font = `bold ${fontSize}px ${KAI_FONT_STACK}`;
+                    
+                    // 名單文字：深藍色、無陰影、清晰化
+                    ctx.shadowColor = "transparent";
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+
+                    // 移除黑框以維持線條清晰
+                    ctx.fillStyle = "#000080"; 
+                    ctx.fillText(name.trim(), x, y);
+                    
+                    ctx.restore();
+                });
+            };
+
+            useEffect(() => {
+                const timer = setTimeout(drawImage, 150);
+                return () => clearTimeout(timer);
+            }, [prizeName, winnerText, customBg]);
+
+            const downloadImage = () => {
+                const canvas = canvasRef.current;
+                const link = document.createElement('a');
+                link.download = `${prizeName}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+            };
+
+            return (
+                <div className="max-w-7xl mx-auto flex flex-col gap-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="bg-red-950/60 p-8 rounded-[2.5rem] border border-red-500/20 backdrop-blur-md space-y-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <Icon name="type" className="text-amber-400" size={24} />
+                                    <h2 className="text-2xl font-black text-amber-400">標題與底圖設定</h2>
+                                </div>
+                                <button 
+                                    onClick={() => setIsEditingPresets(!isEditingPresets)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isEditingPresets ? 'bg-amber-500 text-red-950 border-amber-400' : 'bg-transparent text-amber-400 border-amber-500/30 hover:bg-amber-500/10'}`}
+                                >
+                                    <Icon name={isEditingPresets ? "check" : "edit-3"} size={14} />
+                                    {isEditingPresets ? "完成編輯" : "管理快速填入"}
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-black text-amber-200/50 uppercase tracking-widest ml-1">1. 自訂獎項標題</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-white focus:border-amber-500 outline-none font-bold text-lg"
+                                        placeholder="在此輸入標題內容..."
+                                        value={prizeName}
+                                        onChange={(e) => setPrizeName(e.target.value)}
+                                    />
+                                    
+                                    <div className="mt-4 p-4 bg-black/20 rounded-2xl border border-white/5">
+                                        <p className="text-[10px] font-black text-amber-200/30 uppercase tracking-widest mb-3">
+                                            {isEditingPresets ? "正在編輯按鈕內容..." : "快速切換標題"}
+                                        </p>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {presetTitles.map((title, idx) => (
+                                                <div key={idx} className="flex gap-2">
+                                                    {isEditingPresets ? (
+                                                        <input 
+                                                            type="text"
+                                                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500/50 outline-none"
+                                                            value={title}
+                                                            onChange={(e) => updatePreset(idx, e.target.value)}
+                                                        />
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => setPrizeName(title)}
+                                                            className="flex-1 text-left text-xs bg-red-900/30 hover:bg-red-800/50 text-amber-200/80 border border-amber-500/20 px-4 py-2.5 rounded-xl transition-all truncate"
+                                                        >
+                                                            {title || "(空白)"}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 pt-2">
+                                    <label className="block text-xs font-black text-amber-200/50 uppercase tracking-widest ml-1">2. 底圖網址</label>
+                                    <div className="flex gap-2">
+                                        <input type="text" className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white focus:border-amber-500 outline-none text-sm" placeholder="URL..." value={bgUrl} onChange={(e) => setBgUrl(e.target.value)} />
+                                        <button onClick={() => loadSpecificUrl(bgUrl)} disabled={isLoading || !bgUrl} className="bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700 text-red-950 font-bold px-4 rounded-xl text-sm transition-colors">載入</button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-black text-amber-200/50 uppercase tracking-widest ml-1">3. 本地上傳底圖</label>
+                                    <div className="relative group">
+                                        <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                        <div className="bg-amber-600/10 border-2 border-dashed border-amber-500/30 rounded-2xl py-3 text-amber-400 text-center group-hover:bg-amber-600/20 transition-all flex items-center justify-center gap-2">
+                                            <Icon name="image-plus" size={18} /> 選擇檔案
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button onClick={downloadImage} disabled={!customBg} className={`w-full py-5 rounded-2xl shadow-xl font-black transition-all flex items-center justify-center gap-2 text-xl ${customBg ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-red-950 hover:scale-105 active:scale-95' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}>
+                                <Icon name="download" size={24} /> 下載 1080p 高清圖
+                            </button>
+                        </div>
+
+                        <div className="bg-red-950/60 p-8 rounded-[2.5rem] border border-red-500/20 backdrop-blur-md flex flex-col">
+                            <div className="flex items-center gap-3 mb-4">
+                                <Icon name="users" className="text-amber-400" size={24} />
+                                <h2 className="text-2xl font-black text-amber-400">編輯名單內容</h2>
+                            </div>
+                            <textarea rows="15" className="flex-1 w-full bg-black/60 border border-white/5 rounded-2xl p-5 text-white focus:border-amber-500 outline-none font-mono text-base leading-relaxed custom-scrollbar shadow-inner" value={winnerText} onChange={(e) => setWinnerText(e.target.value)} placeholder="請貼上名單，每行一位姓名..." />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-center">
+                        <div className="mb-4 text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                            <Icon name="eye" size={14} /> 畫布輸出預覽 (黑框標題)
+                        </div>
+                        <div className="w-full bg-black/40 rounded-[3rem] p-6 border border-white/5 flex justify-center overflow-hidden shadow-2xl">
+                            <div className="w-full overflow-auto flex justify-center">
+                                <div style={{ transform: 'scale(0.4)', transformOrigin: 'top center', width: '1920px', height: '1080px', flexShrink: 0 }}>
+                                    <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
