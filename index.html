@@ -143,8 +143,8 @@
                 ctx.lineJoin = "round";
                 ctx.strokeText(titleText, titleX, titleY);
 
-                // 2. 再填入白色主文字
-                ctx.fillStyle = "#FFFFFF";
+                // 2. 再填入主文字 (咖啡色)
+                ctx.fillStyle = "#4E342E";
                 ctx.fillText(titleText, titleX, titleY);
                 ctx.restore();
 
@@ -195,7 +195,7 @@
                     ctx.shadowOffsetY = 0;
 
                     // 移除黑框以維持線條清晰
-                    ctx.fillStyle = "#4E342E"; 
+                    ctx.fillStyle = "#000080"; 
                     ctx.fillText(name.trim(), x, y);
                     
                     ctx.restore();
